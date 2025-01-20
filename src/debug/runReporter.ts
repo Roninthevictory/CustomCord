@@ -102,5 +102,5 @@ async function runReporter() {
     }
 }
 
-// Run after the Vencord object has been created
+// Run after the Vencord object has been created, because we need to add extra properties to it
 setTimeout(runReporter, 0);
