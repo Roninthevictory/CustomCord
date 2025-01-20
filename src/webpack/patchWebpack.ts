@@ -12,7 +12,7 @@ import { PatchReplacement } from "@utils/types";
 
 import { traceFunctionWithResults } from "../debug/Tracer";
 import { patches } from "../plugins";
-import { _initWebpack, AnyModuleFactory, AnyWebpackRequire, factoryListeners, findModuleId, moduleListeners, subscriptions, WebpackRequire, WrappedModuleFactory, wreq } from ".";
+import { _initWebpack, AnyModuleFactory, AnyWebpackRequire, factoryListeners, findModuleId, ModuleExports, moduleListeners, subscriptions, WebpackRequire, WrappedModuleFactory, wreq } from ".";
 
 const logger = new Logger("WebpackInterceptor", "#8caaee");
 
@@ -28,6 +28,11 @@ let shouldPatchFactories = true;
 
 const getBuildNumber = makeLazy(() => {
     try {
+        const hardcodedModuleAttempt = wreq(128014)?.b?.();
+        if (typeof hardcodedModuleAttempt === "number") {
+            return hardcodedModuleAttempt;
+        }
+
         shouldPatchFactories = false;
 
         const moduleId = findModuleId("Trying to open a changelog for an invalid build number");
@@ -35,8 +40,13 @@ const getBuildNumber = makeLazy(() => {
             return -1;
         }
 
-        const buildNumber = Object.values<any>(wreq(moduleId)).find(v => typeof v === "function" && typeof v() === "number")?.() as number | undefined;
-        return buildNumber ?? -1;
+        const exports = Object.values<ModuleExports>(wreq(moduleId));
+        if (exports.length !== 1 || typeof exports[0] !== "function") {
+            return -1;
+        }
+
+        const buildNumber = exports[0]();
+        return typeof buildNumber === "number" ? buildNumber : -1;
     } catch {
         return -1;
     } finally {
@@ -431,9 +441,8 @@ function patchFactory(id: PropertyKey, factory: AnyModuleFactory) {
         if (!moduleMatches) continue;
 
         if (
-            !Settings.eagerPatches &&
-            (patch.fromBuild != null && getBuildNumber() < patch.fromBuild) ||
-            (patch.toBuild != null && getBuildNumber() > patch.toBuild)
+            (patch.fromBuild != null && getBuildNumber() !== -1 && getBuildNumber() < patch.fromBuild) ||
+            (patch.toBuild != null && getBuildNumber() !== -1 && getBuildNumber() > patch.toBuild)
         ) {
             continue;
         }
@@ -453,9 +462,8 @@ function patchFactory(id: PropertyKey, factory: AnyModuleFactory) {
         // We change all patch.replacement to array in plugins/index
         for (const replacement of patch.replacement as PatchReplacement[]) {
             if (
-                !Settings.eagerPatches &&
-                (replacement.fromBuild != null && getBuildNumber() < replacement.fromBuild) ||
-                (replacement.toBuild != null && getBuildNumber() > replacement.toBuild)
+                (replacement.fromBuild != null && getBuildNumber() !== -1 && getBuildNumber() < replacement.fromBuild) ||
+                (replacement.toBuild != null && getBuildNumber() !== -1 && getBuildNumber() > replacement.toBuild)
             ) {
                 continue;
             }
