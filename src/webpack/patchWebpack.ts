@@ -5,13 +5,14 @@
  */
 
 import { Settings } from "@api/Settings";
+import { makeLazy } from "@utils/lazy";
 import { Logger } from "@utils/Logger";
 import { interpolateIfDefined } from "@utils/misc";
 import { PatchReplacement } from "@utils/types";
 
 import { traceFunctionWithResults } from "../debug/Tracer";
 import { patches } from "../plugins";
-import { _initWebpack, AnyModuleFactory, AnyWebpackRequire, factoryListeners, moduleListeners, subscriptions, WebpackRequire, WrappedModuleFactory, wreq } from ".";
+import { _initWebpack, AnyModuleFactory, AnyWebpackRequire, factoryListeners, findModuleId, moduleListeners, subscriptions, WebpackRequire, WrappedModuleFactory, wreq } from ".";
 
 const logger = new Logger("WebpackInterceptor", "#8caaee");
 
@@ -19,6 +20,29 @@ const logger = new Logger("WebpackInterceptor", "#8caaee");
 export const allWebpackInstances = new Set<AnyWebpackRequire>();
 /** Whether we tried to fallback to factory WebpackRequire, or disabled patches */
 let wreqFallbackApplied = false;
+/** Whether we should be patching factories.
+ *
+ * This should be disabled if we starting searching for the module to get the build number, and then resumed once it's done.
+ * */
+let shouldPatchFactories = true;
+
+const getBuildNumber = makeLazy(() => {
+    try {
+        shouldPatchFactories = false;
+
+        const moduleId = findModuleId("Trying to open a changelog for an invalid build number");
+        if (moduleId == null) {
+            return -1;
+        }
+
+        const buildNumber = Object.values<any>(wreq(moduleId)).find(v => typeof v === "function" && typeof v() === "number")?.() as number | undefined;
+        return buildNumber ?? -1;
+    } catch {
+        return -1;
+    } finally {
+        shouldPatchFactories = true;
+    }
+});
 
 export const patchTimings = [] as Array<[plugin: string, moduleId: PropertyKey, match: string | RegExp, totalTime: number]>;
 
@@ -82,7 +106,7 @@ define(Function.prototype, "m", {
             }
 
             notifyFactoryListeners(originalModules[id]);
-            defineModulesFactoryGetter(id, Settings.eagerPatches ? wrapAndPatchFactory(id, originalModules[id]) : originalModules[id]);
+            defineModulesFactoryGetter(id, Settings.eagerPatches && shouldPatchFactories ? wrapAndPatchFactory(id, originalModules[id]) : originalModules[id]);
         }
 
         define(originalModules, Symbol.toStringTag, {
@@ -129,7 +153,7 @@ const moduleFactoriesHandler: ProxyHandler<AnyWebpackRequire["m"]> = {
         }
 
         notifyFactoryListeners(newValue);
-        defineModulesFactoryGetter(p, Settings.eagerPatches ? wrapAndPatchFactory(p, newValue) : newValue);
+        defineModulesFactoryGetter(p, Settings.eagerPatches && shouldPatchFactories ? wrapAndPatchFactory(p, newValue) : newValue);
 
         return true;
     }
@@ -205,7 +229,7 @@ function defineModulesFactoryGetter(id: PropertyKey, factory: WrappedModuleFacto
     const descriptor: PropertyDescriptor = {
         get() {
             // $$vencordOriginal means the factory is already patched
-            if (factory.$$vencordOriginal != null) {
+            if (!shouldPatchFactories || factory.$$vencordOriginal != null) {
                 return factory;
             }
 
@@ -406,6 +430,13 @@ function patchFactory(id: PropertyKey, factory: AnyModuleFactory) {
 
         if (!moduleMatches) continue;
 
+        if (
+            (patch.fromBuild != null && getBuildNumber() < patch.fromBuild) ||
+            (patch.toBuild != null && getBuildNumber() > patch.toBuild)
+        ) {
+            continue;
+        }
+
         patchedBy.add(patch.plugin);
 
         const executePatch = traceFunctionWithResults(`patch by ${patch.plugin}`, (match: string | RegExp, replace: string) => {
@@ -420,6 +451,13 @@ function patchFactory(id: PropertyKey, factory: AnyModuleFactory) {
 
         // We change all patch.replacement to array in plugins/index
         for (const replacement of patch.replacement as PatchReplacement[]) {
+            if (
+                (replacement.fromBuild != null && getBuildNumber() < replacement.fromBuild) ||
+                (replacement.toBuild != null && getBuildNumber() > replacement.toBuild)
+            ) {
+                continue;
+            }
+
             const lastCode = code;
             const lastFactory = factory;
 
