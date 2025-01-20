@@ -22,7 +22,7 @@ export const allWebpackInstances = new Set<AnyWebpackRequire>();
 let wreqFallbackApplied = false;
 /** Whether we should be patching factories.
  *
- * This should be disabled if we starting searching for the module to get the build number, and then resumed once it's done.
+ * This should be disabled if we start searching for the module to get the build number, and then resumed once it's done.
  * */
 let shouldPatchFactories = true;
 
