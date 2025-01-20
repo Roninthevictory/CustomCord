@@ -73,8 +73,14 @@ export default definePlugin({
             group: true,
             replacement: [
                 {
+                    match: /(?<=\.SIZE_32\)}\);)/,
+                    replace: "$self.useAccountPanelRef();",
+                    toBuild: 360320
+                },
+                {
                     match: /(?<=\.AVATAR_SIZE\);)/,
-                    replace: "$self.useAccountPanelRef();"
+                    replace: "$self.useAccountPanelRef();",
+                    fromBuild: 360326
                 },
                 {
                     match: /(\.AVATAR,children:.+?renderPopout:(\i)=>){(.+?)}(?=,position)(?<=currentUser:(\i).+?)/,
