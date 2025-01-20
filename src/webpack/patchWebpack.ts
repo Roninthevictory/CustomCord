@@ -431,6 +431,7 @@ function patchFactory(id: PropertyKey, factory: AnyModuleFactory) {
         if (!moduleMatches) continue;
 
         if (
+            !Settings.eagerPatches &&
             (patch.fromBuild != null && getBuildNumber() < patch.fromBuild) ||
             (patch.toBuild != null && getBuildNumber() > patch.toBuild)
         ) {
@@ -452,6 +453,7 @@ function patchFactory(id: PropertyKey, factory: AnyModuleFactory) {
         // We change all patch.replacement to array in plugins/index
         for (const replacement of patch.replacement as PatchReplacement[]) {
             if (
+                !Settings.eagerPatches &&
                 (replacement.fromBuild != null && getBuildNumber() < replacement.fromBuild) ||
                 (replacement.toBuild != null && getBuildNumber() > replacement.toBuild)
             ) {
