@@ -80,8 +80,8 @@ export const filters = {
     }
 };
 
-export type FactoryListernFn = (factory: AnyModuleFactory) => void;
 export type CallbackFn = (module: ModuleExports, id: PropertyKey) => void;
+export type FactoryListernFn = (factory: AnyModuleFactory) => void;
 
 export const subscriptions = new Map<FilterFn, CallbackFn>();
 export const moduleListeners = new Set<CallbackFn>();
