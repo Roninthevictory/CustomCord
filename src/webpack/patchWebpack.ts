@@ -28,12 +28,12 @@ let shouldPatchFactories = true;
 
 const getBuildNumber = makeLazy(() => {
     try {
+        shouldPatchFactories = false;
+
         const hardcodedModuleAttempt = wreq(128014)?.b?.();
         if (typeof hardcodedModuleAttempt === "number") {
             return hardcodedModuleAttempt;
         }
-
-        shouldPatchFactories = false;
 
         const moduleId = findModuleId("Trying to open a changelog for an invalid build number");
         if (moduleId == null) {
