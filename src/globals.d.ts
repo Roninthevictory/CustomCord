@@ -43,7 +43,7 @@ declare global {
     export var VERSION: string;
     export var BUILD_TIMESTAMP: number;
 
-    export var VencordNative: typeof import("./VencordNative").default;
+    export var CustomcordNative: typeof import("./CustomcordNative").default;
     export var Vencord: typeof import("./Vencord");
     export var VencordStyles: Map<string, {
         name: string;
