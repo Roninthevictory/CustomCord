@@ -21,7 +21,7 @@ import { contextBridge, webFrame } from "electron";
 import { readFileSync, watch } from "fs";
 import { join } from "path";
 
-import VencordNative from "./VencordNative";
+import VencordNative from "./CustomNative";
 
 contextBridge.exposeInMainWorld("VencordNative", VencordNative);
 
