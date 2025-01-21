@@ -1,8 +1,8 @@
 {
-    "name": "vencord",
+    "name": "Customcord",
     "private": "true",
     "version": "1.10.9",
-    "description": "The cutest Discord client mod",
+    "description": "A Fun Lighweight Discord Client ",
     "homepage": "https://github.com/Vendicated/Vencord#readme",
     "bugs": {
         "url": "https://github.com/Vendicated/Vencord/issues"
@@ -12,7 +12,7 @@
         "url": "git+https://github.com/Vendicated/Vencord.git"
     },
     "license": "GPL-3.0-or-later",
-    "author": "Vendicated",
+    "author": "RVOINC",
     "scripts": {
         "build": "node --require=./scripts/suppressExperimentalWarnings.js scripts/build/build.mjs",
         "buildStandalone": "pnpm build --standalone",
